@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package pb;
+
+message OpBaseReturn {
+	uint64 serverTs = 1;
+	string error = 2;
+}
+
+message GameAuth {
+	uint32 id = 1;
+	string sign = 2;
+	uint32 ts = 3;
+}
+
+/*
+yes rpg
+ */
+
+message MsgA {
+	OpBaseReturn base = 1;
+}

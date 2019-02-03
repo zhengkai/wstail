@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { WSService } from '../ws.service';
 
 @Component({
 	selector: 'app-view',
@@ -7,7 +8,8 @@ import { Component, OnInit } from '@angular/core';
 })
 export class ViewComponent implements OnInit {
 
-	constructor() { }
+	constructor(private ws: WSService) {
+	}
 
 	ngOnInit() {
 	}
