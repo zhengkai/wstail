@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package pb;
 
+import "google/protobuf/any.proto";
+
 message OpBaseReturn {
 	uint64 serverTs = 1;
 	string error = 2;
@@ -13,10 +15,12 @@ message GameAuth {
 	uint32 ts = 3;
 }
 
-/*
-yes rpg
- */
+message Play {
+	string foo = 1;
+	uint32 bar = 2;
+}
 
 message MsgA {
 	OpBaseReturn base = 1;
+	repeated google.protobuf.Any msg = 2;
 }

@@ -1,12 +1,15 @@
 import { Injectable } from '@angular/core';
+import { pb } from '../pb/pb';
 
 interface IWsConn {
 	ws: WebSocket;
 	id: number;
 }
 
+const lengthPrefixType = 'type.googleapis.com/pb.'.length;
+
 @Injectable({
-	providedIn: 'root'
+	providedIn: 'root',
 })
 export class WSService {
 
@@ -71,7 +74,36 @@ export class WSService {
 	}
 
 	onmessage(e) {
-		console.log('onmessage', e);
+		console.log('onmessage', e, lengthPrefixType);
+
+		(async () => {
+			// const buffer = await e.data();
+
+			const ab = await (new Response(e.data)).arrayBuffer();
+
+			const r = pb.MsgA.decode(new Uint8Array(ab));
+
+			for (const o of r.msg) {
+
+				// console.log(o);
+
+				let fn: any;
+
+				switch (o.type_url.substring(lengthPrefixType)) {
+				case 'Play':
+					fn = pb.Play;
+					break;
+				case 'GameAuth':
+					fn = pb.GameAuth;
+					break;
+				}
+
+				const a = fn.decode(o.value);
+				console.log(a);
+			}
+
+			// console.log(r);
+		})();
 	}
 
 	onopen(e) {
