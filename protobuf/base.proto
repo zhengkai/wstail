@@ -9,18 +9,16 @@ message OpBaseReturn {
 	string error = 2;
 }
 
-message GameAuth {
-	uint32 id = 1;
-	string sign = 2;
-	uint32 ts = 3;
-}
-
-message Play {
-	string foo = 1;
-	uint32 bar = 2;
-}
-
-message MsgA {
+message MsgReturn {
 	OpBaseReturn base = 1;
 	repeated google.protobuf.Any msg = 2;
+}
+
+message Login {
+	string name = 1;
+	enum ConnectType {
+		NEW = 0;
+		RECONNECT = 1;
+	}
+	ConnectType connectType = 2;
 }

@@ -8,8 +8,6 @@ import (
 	"pb"
 
 	"github.com/gogo/protobuf/proto"
-	"github.com/golang/protobuf/ptypes"
-	"github.com/golang/protobuf/ptypes/any"
 	"github.com/gorilla/websocket"
 )
 
@@ -30,7 +28,36 @@ func doListen(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println(`listen`)
+	closeCode := 0
+	closeText := ``
+
+	defer func() {
+		if closeCode > 0 {
+			ws.SetWriteDeadline(time.Now().Add(wsWriteWait))
+			ab := websocket.FormatCloseMessage(closeCode, closeText)
+			ws.WriteMessage(websocket.CloseMessage, ab)
+		}
+		ws.Close()
+	}()
+
+	ws.SetReadDeadline(time.Now().Add(30 * time.Second))
+
+	var ab []byte
+	_, ab, err = ws.ReadMessage()
+	if err != nil {
+		return
+	}
+
+	login := &pb.Login{}
+	err = proto.Unmarshal(ab, login)
+
+	if err != nil || login.Name == `` {
+		closeCode = 1
+		closeText = `login parse error`
+		return
+	}
+
+	fmt.Println(`login`, login.Name)
 
 	ticker := time.NewTicker(500 * time.Millisecond)
 
@@ -43,41 +70,7 @@ func doListen(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 
-		a := &pb.Play{
-			Foo: `foo`,
-			Bar: uint32(i),
-		}
-
-		base := &pb.OpBaseReturn{
-			ServerTs: uint64(t.Unix()),
-			Error:    `没错`,
-		}
-
-		c := &pb.MsgA{
-			Base: base,
-			Msg:  make([]*any.Any, 0),
-		}
-
-		auth := &pb.GameAuth{
-			Id:   1,
-			Sign: `auth`,
-		}
-
-		tmp, _ := ptypes.MarshalAny(a)
-		c.Msg = append(c.Msg, tmp)
-
-		tmp, _ = ptypes.MarshalAny(auth)
-		c.Msg = append(c.Msg, tmp)
-
-		b, _ := proto.Marshal(c)
-
-		ws.SetWriteDeadline(time.Now().Add(wsWriteWait))
-		err = ws.WriteMessage(websocket.BinaryMessage, b)
-
-		x := &pb.MsgA{}
-
-		proto.Unmarshal(b, x)
-		fmt.Println(x, x.Base.Error)
+		fmt.Println(t)
 
 		if err != nil {
 			break
@@ -85,6 +78,4 @@ func doListen(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fmt.Println(`listen end`)
-
-	ws.Close()
 }

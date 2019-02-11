@@ -30,7 +30,7 @@ export class WSService {
 			this.conn.ws.close();
 		}
 
-		const ws = new WebSocket('ws://127.0.0.1:21002/ws/listen');
+		let ws = new WebSocket('ws://127.0.0.1:21002/ws/listen');
 		const id = this.connectID;
 		const conn = {
 			id,
@@ -43,70 +43,62 @@ export class WSService {
 			if (id !== this.connectID) {
 				return;
 			}
-			this.onopen(e);
+			this.onopen(e, id);
 		};
 		ws.onclose = (e) => {
 			if (id !== this.connectID) {
 				return;
 			}
-			this.onclose(e);
+			this.connectID++;
+			this.onclose(e, id);
+			ws = null;
 		};
 		ws.onmessage = (e) => {
 			if (id !== this.connectID) {
 				return;
 			}
-			this.onmessage(e);
+			this.onmessage(e, id);
 		};
 		ws.onerror = (e) => {
 			if (id !== this.connectID) {
 				return;
 			}
-			this.onerror(e);
+			this.onerror(e, id);
 		};
 	}
 
-	onclose(e) {
-		console.log('onclose', e);
+	async onclose(e, id) {
+		console.log('onclose', e.code, e.reason);
 	}
 
-	onerror(e) {
+	async onerror(e, id) {
 		console.log('onerror', e);
 	}
 
-	onmessage(e) {
-		console.log('onmessage', e, lengthPrefixType);
+	async onmessage(e, id) {
+		console.log('onmessage', e);
 
-		(async () => {
-			// const buffer = await e.data();
+		const ab = (new Response(e.data)).arrayBuffer();
 
-			const ab = await (new Response(e.data)).arrayBuffer();
-
-			const r = pb.MsgA.decode(new Uint8Array(ab));
-
-			for (const o of r.msg) {
-
-				// console.log(o);
-
-				let fn: any;
-
-				switch (o.type_url.substring(lengthPrefixType)) {
-				case 'Play':
-					fn = pb.Play;
-					break;
-				case 'GameAuth':
-					fn = pb.GameAuth;
-					break;
-				}
-
-				const a = fn.decode(o.value);
-				console.log(a);
-			}
-
-			// console.log(r);
-		})();
+		console.log('message', ab);
 	}
 
-	onopen(e) {
+	async onopen(e, id) {
 		console.log('onopen', e);
+
+		const login = {
+			name: 'rpg',
+			connectType: pb.Login.ConnectType.NEW,
+		} as pb.Login;
+
+		const ab = pb.Login.encode(login).finish();
+		this.send(id, ab);
+	}
+
+	async send(id: number, message: Uint8Array|ArrayBuffer) {
+		if (id !== this.conn.id) {
+			return;
+		}
+		this.conn.ws.send(message);
 	}
 }
