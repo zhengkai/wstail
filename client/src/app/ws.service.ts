@@ -17,6 +17,8 @@ export class WSService {
 
 	conn: IWsConn = null;
 
+	ts: number;
+
 	constructor() {
 		this.connect();
 	}
@@ -24,6 +26,7 @@ export class WSService {
 	connect() {
 
 		this.connectID++;
+		this.ts = Date.now();
 
 		if (this.conn !== null) {
 			console.log('conn not null', this.conn);
@@ -68,7 +71,7 @@ export class WSService {
 	}
 
 	async onclose(e, id) {
-		console.log('onclose', e.code, e.reason);
+		console.log('onclose', e.code, e.reason, Date.now() - this.ts, e);
 	}
 
 	async onerror(e, id) {
@@ -76,11 +79,13 @@ export class WSService {
 	}
 
 	async onmessage(e, id) {
-		console.log('onmessage', e);
+		// console.log('onmessage', e);
 
-		const ab = (new Response(e.data)).arrayBuffer();
+		const ab = await (new Response(e.data)).arrayBuffer();
 
-		console.log('message', ab);
+		const s = new TextDecoder('utf-8').decode(ab);
+
+		console.log('message', s, ab);
 	}
 
 	async onopen(e, id) {

@@ -22,3 +22,8 @@ message Login {
 	}
 	ConnectType connectType = 2;
 }
+
+message Cmd {
+	string name = 1;
+	int32 test = 2;
+}

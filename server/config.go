@@ -3,5 +3,5 @@ package main
 import "time"
 
 var (
-	wsWriteWait = 30 * time.Second
+	wsWriteWait = 27 * time.Second
 )
