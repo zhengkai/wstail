@@ -24,6 +24,23 @@ var (
 	}
 )
 
+type listen struct {
+	closeCode int
+	closeText string
+	ws        *websocket.Conn
+	login     *pb.Login
+	conn      *playerConn
+	room      *room
+}
+
+type playerConn struct {
+	id      uint64
+	login   *pb.Login
+	ws      *websocket.Conn
+	confirm ifConfirmChan
+	send    chan []byte
+}
+
 func doListen(w http.ResponseWriter, r *http.Request) {
 
 	ws, err := upgrader.Upgrade(w, r, nil)
@@ -31,81 +48,105 @@ func doListen(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	closeCode := 0
-	closeText := ``
+	l := &listen{
+		ws: ws,
+	}
+	l.run()
+}
 
-	defer func() {
-		if closeCode > 0 {
-			ws.SetWriteDeadline(time.Now().Add(wsWriteWait))
-			ab := websocket.FormatCloseMessage(closeCode+4000, closeText)
-			ws.WriteMessage(websocket.CloseMessage, ab)
-		}
-		ws.Close()
-	}()
+func (l *listen) waitLogin() (ok bool) {
 
+	var err error
 	var ab []byte
-	ws.SetReadDeadline(time.Now().Add(21 * time.Second))
-	_, ab, err = ws.ReadMessage()
+
+	l.ws.SetReadDeadline(time.Now().Add(21 * time.Second))
+	_, ab, err = l.ws.ReadMessage()
 	if err != nil {
 		return
 	}
 
-	login := &pb.Login{}
-	err = proto.Unmarshal(ab, login)
+	l.login = &pb.Login{}
+	err = proto.Unmarshal(ab, l.login)
 
 	if err != nil {
-		closeCode = 1
-		closeText = `login parse error`
+		l.closeCode = 1
+		l.closeText = `login parse error`
 		return
 	}
 
-	if !loginAuth(login) {
-		closeCode = 2
-		closeText = `login fail`
+	if !loginAuth(l.login) {
+		l.closeCode = 2
+		l.closeText = `login fail`
 		return
 	}
+
+	return true
+}
+
+func (l *listen) waitManager() (ok bool) {
 
 	confirmChan := make(ifConfirmChan, 1)
-	conn := &playerConn{
+	l.conn = &playerConn{
 		id:      atomic.AddUint64(&playerConnID, 1),
-		login:   login,
-		ws:      ws,
+		login:   l.login,
+		ws:      l.ws,
 		confirm: confirmChan,
 	}
 
-	comingChan <- conn
+	comingChan <- l.conn
 
-	room := <-confirmChan
+	l.room = <-confirmChan
 
 	close(confirmChan)
-	conn.confirm = nil
+	l.conn.confirm = nil
 
-	if room == nil {
-		closeCode = 3
-		closeText = `not confirmed`
+	if l.room == nil {
+		l.closeCode = 3
+		l.closeText = `not confirmed`
 		return
 	}
 
-	ws.SetReadDeadline(time.Time{})
+	return true
+}
+
+func (l *listen) run() {
+	for {
+		if !l.waitLogin() {
+			break
+		}
+		if !l.waitManager() {
+			break
+		}
+		l.loopRead()
+		break
+	}
+	l.close()
+}
+
+func (l *listen) loopRead() {
+
+	var err error
+	var ab []byte
+
+	l.ws.SetReadDeadline(time.Time{})
 	for {
 
-		_, ab, err = ws.ReadMessage()
+		_, ab, err = l.ws.ReadMessage()
 		if err != nil {
 			break
 		}
 
 		fmt.Println(`client read`, string(ab))
-
-		/*
-			cmd := &pb.Cmd{}
-			err = proto.Unmarshal(ab, cmd)
-			if err != nil {
-				break
-			}
-
-			room.playerMsg(conn, cmd)
-		*/
 	}
 
-	room.playerExit(conn)
+	l.room.playerExit(l.conn)
+}
+
+func (l *listen) close() {
+	if l.closeCode > 0 {
+		l.ws.SetWriteDeadline(time.Now().Add(wsWriteWait))
+		ab := websocket.FormatCloseMessage(l.closeCode+4000, l.closeText)
+		l.ws.WriteMessage(websocket.CloseMessage, ab)
+	}
+	l.ws.Close()
 }

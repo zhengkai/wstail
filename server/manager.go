@@ -3,24 +3,15 @@ package main
 import (
 	"fmt"
 	"pb"
-
-	"github.com/gorilla/websocket"
+	"regexp"
 )
 
 var (
 	comingChan    = make(chan *playerConn, 1000)
 	cmdDisconnect = `DISCONNECT`
+
+	loginPattern = regexp.MustCompile(`^[0-9a-zA-Z]{1,20}$`)
 )
-
-type ifConfirmChan chan *room
-
-type playerConn struct {
-	id      uint64
-	login   *pb.Login
-	ws      *websocket.Conn
-	confirm ifConfirmChan
-	send    chan []byte
-}
 
 func manager() {
 
@@ -36,7 +27,8 @@ func manager() {
 }
 
 func loginAuth(login *pb.Login) (auth bool) {
-	if login.Name == `` {
+
+	if !loginPattern.MatchString(login.Name) {
 		return
 	}
 	return true

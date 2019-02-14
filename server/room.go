@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"pb"
 	"sync"
 	"time"
@@ -24,12 +25,15 @@ const (
 )
 
 type ifRecvChan chan *roomCmd
+type ifConfirmChan chan *room
 
 type room struct {
-	id     int
-	recv   ifRecvChan
-	player map[string]*playerConn
-	isStop bool
+	id        int
+	recv      ifRecvChan
+	player    map[string]*playerConn
+	isStop    bool
+	idleCount int
+	tickIdle  *time.Ticker
 }
 
 type roomCmd struct {
@@ -38,19 +42,23 @@ type roomCmd struct {
 	msg  *pb.Cmd
 }
 
-func getRoom(rID int) (r *room) {
+func getRoom(id int) (r *room) {
 
-	load, ok := roomMap.Load(rID)
+	load, ok := roomMap.Load(id)
 	if ok {
 		return load.(*room)
 	}
 
 	r = &room{
-		id: rID,
+		id: id,
 	}
 	r.recv = make(ifRecvChan, 1000)
-	roomMap.Store(rID, r)
-	go r.start()
+	roomMap.Store(id, r)
+	go func() {
+		r.start()
+		roomMap.Delete(id)
+		r.stop()
+	}()
 
 	return
 }
@@ -85,48 +93,65 @@ func (r *room) start() {
 
 	r.player = make(map[string]*playerConn)
 
+	r.tickIdle = time.NewTicker(5 * time.Second)
+
 	go r.tick()
 
 	for {
-
-		recv, ok := <-r.recv
+		ok := r.loopServe()
 		if !ok {
 			break
-		}
-
-		switch recv.t {
-
-		case roomCmdNew:
-			r.cmdNew(recv)
-
-		case roomCmdExit:
-			r.cmdExit(recv)
-
-		case roomCmdMsg:
-			r.cmdMsg(recv)
-
-		case roomCmdBroadcast:
-			r.cmdBroadcast(recv)
 		}
 	}
 }
 
+func (r *room) loopServe() (ok bool) {
+
+	var recv *roomCmd
+
+	select {
+	case <-r.tickIdle.C:
+		ok = r.checkIdle()
+		return
+	case recv, ok = <-r.recv:
+	}
+
+	if !ok {
+		return
+	}
+
+	switch recv.t {
+
+	case roomCmdNew:
+		r.cmdNew(recv)
+
+	case roomCmdExit:
+		r.cmdExit(recv)
+
+	case roomCmdMsg:
+		r.cmdMsg(recv)
+
+	case roomCmdBroadcast:
+		r.cmdBroadcast(recv)
+	}
+
+	return
+}
+
 func (r *room) tick() {
 
-	t := time.Tick(time.Second)
+	t := time.NewTicker(1 * time.Second)
 
 	var i int32
 
 	for {
 
-		now := <-t
+		now := <-t.C
 		i++
 
 		if r.isStop {
 			break
 		}
-
-		fmt.Println(`tick`, i)
 
 		r.recv <- &roomCmd{
 			t: roomCmdBroadcast,
@@ -136,6 +161,8 @@ func (r *room) tick() {
 			},
 		}
 	}
+
+	t.Stop()
 }
 
 func (r *room) cmdNew(c *roomCmd) {
@@ -177,6 +204,23 @@ func sendPlayer(p *playerConn) {
 	p.ws.Close()
 }
 
+func (r *room) checkIdle() (ok bool) {
+
+	num := len(r.player)
+
+	log.Println(`check idle`, num)
+
+	if num == 0 {
+		r.idleCount++
+		if r.idleCount > 3 {
+			return false
+		}
+	} else {
+		r.idleCount = 0
+	}
+	return true
+}
+
 func (r *room) cmdBroadcast(c *roomCmd) {
 
 	i := 0
@@ -184,7 +228,6 @@ func (r *room) cmdBroadcast(c *roomCmd) {
 		i++
 		v.send <- []byte(`abc`)
 	}
-	fmt.Println(`cast`, i)
 }
 
 func (r *room) cmdExit(c *roomCmd) {
@@ -213,6 +256,11 @@ func (r *room) cmdMsg(c *roomCmd) {
 }
 
 func (r *room) stop() {
-	roomMap.Delete(r.id)
 	r.isStop = true
+	r.tickIdle.Stop()
+	for _, v := range r.player {
+		v.ws.Close()
+		close(v.send)
+	}
+	r.player = nil
 }
