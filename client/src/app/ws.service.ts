@@ -15,6 +15,8 @@ export class WSService {
 
 	connectID = 0;
 
+	count = 0;
+
 	conn: IWsConn = null;
 
 	ts: number;
@@ -86,6 +88,13 @@ export class WSService {
 		const s = new TextDecoder('utf-8').decode(ab);
 
 		console.log('message', s, ab);
+
+		this.count++;
+		if (this.count % 3 === 0) {
+			const msg = 'test ' + this.count;
+			console.log('send', msg);
+			this.send(id, (new TextEncoder()).encode(msg));
+		}
 	}
 
 	async onopen(e, id) {
