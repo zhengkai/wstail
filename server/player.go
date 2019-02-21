@@ -14,16 +14,9 @@ type player struct {
 	rome.PlayerConn
 }
 
-func (p *player) LoginDecode(b []byte) (login interface{}, ok bool) {
-	fmt.Println(`LoginDecode`)
-	return nil, true
-}
-
-func (p *player) LoginAuth(login interface{}) (ok bool) {
-	fmt.Println(`LoginAuth`)
-
+func (p *player) Login(b []byte) (ok bool) {
+	fmt.Println(`Login v2`)
 	p.ID = 1
-
 	return true
 }
 

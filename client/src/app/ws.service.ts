@@ -21,6 +21,8 @@ export class WSService {
 
 	ts: number;
 
+	cb: any;
+
 	constructor() {
 		this.connect();
 	}
@@ -87,12 +89,16 @@ export class WSService {
 
 		const s = new TextDecoder('utf-8').decode(ab);
 
-		console.log('message', s, ab);
+		// console.log('message', s, ab);
+
+		if (this.cb) {
+			this.cb.recv.call(this.cb, this, s, id);
+		}
 
 		this.count++;
 		if (this.count % 3 === 0) {
 			const msg = 'test ' + this.count;
-			console.log('send', msg);
+			// console.log('send', msg);
 			this.send(id, (new TextEncoder()).encode(msg));
 		}
 	}
@@ -107,6 +113,10 @@ export class WSService {
 
 		const ab = pb.Login.encode(login).finish();
 		this.send(id, ab);
+
+		if (this.cb) {
+			this.cb.connect.call(this.cb, this, id);
+		}
 	}
 
 	async send(id: number, message: Uint8Array|ArrayBuffer) {

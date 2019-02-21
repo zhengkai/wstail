@@ -11,7 +11,16 @@ BIN="wstail-${1:-test}-server"
 ./stop-server.sh "${1:-test}"
 
 echo start build '"'$BIN'"'
-TIME="time: %E" time go build -o "$BIN" ../*.go
+
+DATE=`TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M:%S'`
+GO_VERSION=`go version`
+
+cd ..
+TIME="time: %E" time go build \
+	-ldflags "-X 'main.buildGoVersion=${GO_VERSION}' -X 'main.buildTime=${DATE}'" \
+	-o "bin/$BIN" \
+	*.go
+cd bin
 echo
 
 chmod +x "$BIN"
