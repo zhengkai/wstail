@@ -1,13 +1,14 @@
 package main
 
 import (
-	"fmt"
+	"sync/atomic"
 
 	"github.com/zhengkai/rome"
 )
 
 var (
 	listenChan = make(chan rome.IPlayerConn, 1000)
+	autoID     uint64
 )
 
 type player struct {
@@ -15,8 +16,7 @@ type player struct {
 }
 
 func (p *player) Login(b []byte) (ok bool) {
-	fmt.Println(`Login v2`)
-	p.ID = 1
+	p.ID = atomic.AddUint64(&autoID, 1)
 	return true
 }
 

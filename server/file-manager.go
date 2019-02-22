@@ -64,7 +64,7 @@ func (fm *fileManager) deamon() {
 		f := &file{
 			filename: cb.filename,
 		}
-		go f.deamon()
+		f.start()
 
 		fm.pool.Store(cb.filename, f)
 

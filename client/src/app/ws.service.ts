@@ -84,22 +84,31 @@ export class WSService {
 
 	async onmessage(e, id) {
 		// console.log('onmessage', e);
+		//
 
 		const ab = await (new Response(e.data)).arrayBuffer();
 
-		const s = new TextDecoder('utf-8').decode(ab);
+		const x = await pb.MsgReturn.decode(new Uint8Array(ab));
 
-		// console.log('message', s, ab);
+		console.log(x);
 
-		if (this.cb) {
-			this.cb.recv.call(this.cb, this, s, id);
-		}
+		for (const a of x.msg) {
 
-		this.count++;
-		if (this.count % 3 === 0) {
-			const msg = 'test ' + this.count;
-			// console.log('send', msg);
-			this.send(id, (new TextEncoder()).encode(msg));
+			let v: any;
+			const t = a.type_url.substring(lengthPrefixType);
+
+			switch (t) {
+			case 'Update':
+				v = await pb.Update.decode(a.value);
+				break;
+			case 'PrevContent':
+				v = await pb.PrevContent.decode(a.value);
+				break;
+			}
+
+			if (this.cb) {
+				this.cb.recv.call(this.cb, this, v, t, id);
+			}
 		}
 	}
 

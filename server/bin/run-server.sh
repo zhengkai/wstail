@@ -2,7 +2,7 @@
 
 DIR=`readlink -f "$0"` && DIR=`dirname "$DIR"` && cd "$DIR" || exit 1
 
-ulimit -n 100000
+# ulimit -n 100000
 ulimit -n
 
 BIN="wstail-${1:-test}-server"

@@ -36,17 +36,7 @@ func getWorld(id interface{}) rome.IWorld {
 	}
 
 	nw := &world{}
-	nw.id = id.(int)
-	nw.file = filePool.get(`/tmp/fortune.txt`)
-	nw.buf = make([]byte, readBuffSize)
-	fmt.Println(`file ok`)
-
-	r := &room{}
-	r.World = nw
-
-	nw.Room = r
-
-	rome.InitRoom(r)
+	nw.init(id.(int))
 
 	oneWorld = nw
 

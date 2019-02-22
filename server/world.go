@@ -3,8 +3,8 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"io"
-	"os"
+
+	"pb"
 
 	"github.com/zhengkai/rome"
 )
@@ -19,6 +19,20 @@ type world struct {
 	buf      []byte
 	prevLine []byte
 	reader   *bufio.Reader
+}
+
+func (w *world) init(id int) {
+
+	w.id = id
+	w.file = filePool.get(`/tmp/fortune.txt`)
+	fmt.Println(`file ok`)
+
+	r := &room{}
+	r.World = w
+
+	w.Room = r
+
+	rome.InitRoom(r)
 }
 
 func (w *world) Tick(i int) (ok bool) {
@@ -57,44 +71,38 @@ func (w *world) isChange() (ok bool) {
 
 func (w *world) scan() {
 
-	finfo, err := os.Stat(w.file.filename)
-	if err != nil {
-		w.reader = nil
+	b, reset, ok := w.file.scan()
+	if !ok {
 		return
 	}
 
-	size := finfo.Size()
-	fmt.Println(`size`, size, w.fileSize)
+	send := encodeReturn(&pb.Update{
+		Reset_: reset,
+		Msg:    utf8string(string(b)),
+	})
 
-	if w.fileSize > size {
-		w.reader = nil
-	}
-	if w.reader == nil {
-		f, err := os.Open(w.file.filename)
-		if err != nil {
-			return
-		}
-		w.reader = bufio.NewReader(f)
-		w.fileSize = 0
-	}
-
-	n, err := w.reader.Read(w.buf)
-	if err != nil && err != io.EOF {
-		fmt.Println(`read error:`, err)
-		w.reader = nil
-		return
-	}
-
-	w.fileSize += int64(n)
-
-	read := w.buf[:n]
-
-	w.Room.SendMsg(read)
-
-	fmt.Println(`read`, n, `total`, w.fileSize)
+	w.Room.SendMsg(send)
 }
 
 func (w *world) Player(p rome.IPlayerConn, status bool) {
+
+	if !status {
+		return
+	}
+
+	go func() {
+
+		b, ok := w.file.prev()
+		if !ok {
+			return
+		}
+
+		send := encodeReturn(&pb.PrevContent{
+			Msg: utf8string(string(b)),
+		})
+
+		p.Send(send)
+	}()
 
 	fmt.Printf("player type: %T\n", p)
 
