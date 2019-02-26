@@ -90,8 +90,6 @@ export class WSService {
 
 		const x = await pb.MsgReturn.decode(new Uint8Array(ab));
 
-		console.log(x);
-
 		for (const a of x.msg) {
 
 			let v: any;
@@ -105,6 +103,8 @@ export class WSService {
 				v = await pb.PrevContent.decode(a.value);
 				break;
 			}
+
+			console.log(x, ab.byteLength, a.value.length, lengthPrefixType);
 
 			if (this.cb) {
 				this.cb.recv.call(this.cb, this, v, t, id);

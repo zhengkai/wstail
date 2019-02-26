@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"time"
 
 	"pb"
 
@@ -11,7 +12,6 @@ import (
 
 type world struct {
 	rome.World
-	id   int
 	file *file
 
 	fileSize int64
@@ -19,13 +19,24 @@ type world struct {
 	buf      []byte
 	prevLine []byte
 	reader   *bufio.Reader
+
+	online     int
+	timeEmpty  time.Time
+	timeCreate time.Time
 }
 
-func (w *world) init(id int) {
+func (w *world) init(filename string) {
 
-	w.id = id
-	w.file = filePool.get(`/tmp/fortune.txt`)
-	fmt.Println(`file ok`)
+	fmt.Println(`world init`)
+
+	w.file = &file{
+		filename: filename,
+	}
+	w.file.start()
+
+	now := time.Now()
+	w.timeEmpty = now
+	w.timeCreate = now
 
 	r := &room{}
 	r.World = w
@@ -86,6 +97,8 @@ func (w *world) scan() {
 
 func (w *world) Player(p rome.IPlayerConn, status bool) {
 
+	w.playerCount(status)
+
 	if !status {
 		return
 	}
@@ -104,19 +117,31 @@ func (w *world) Player(p rome.IPlayerConn, status bool) {
 		p.Send(send)
 	}()
 
-	fmt.Printf("player type: %T\n", p)
-
-	player := p.(*player)
-
-	fmt.Println(`world Player`, player.ID, status)
+	// player := p.(*player)
 }
 
 func (w *world) Input(p rome.IPlayerConn, msg interface{}) {
 
-	player := p.(*player)
+	// player := p.(*player)
+}
 
-	// fmt.Printf("player type: %T\n", p)
-	fmt.Println(`world Input`, player.ID, msg)
+func (w *world) stop() {
+	w.file.stop = true
+}
 
-	// p.SendStop([]byte(`close`))
+func (w *world) playerCount(status bool) {
+
+	add := 1
+	if !status {
+		add = -1
+	}
+	w.online += add
+
+	if w.online < 0 {
+		panic(`player count -1`)
+	}
+
+	if w.online == 0 {
+		w.timeEmpty = time.Now()
+	}
 }

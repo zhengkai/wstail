@@ -20,12 +20,19 @@ type file struct {
 	reader   *bufio.Reader
 
 	initOver bool
+	stop     bool
 }
 
 func (f *file) prev() (b []byte, ok bool) {
 
-	if !f.initOver {
-		return
+	if f.size == 0 {
+		if f.initOver {
+			return
+		}
+		time.Sleep(time.Second / 2)
+		if f.size == 0 {
+			return
+		}
 	}
 
 	size := int(f.size)
@@ -35,9 +42,12 @@ func (f *file) prev() (b []byte, ok bool) {
 		return
 	}
 
+	// 根据文件当前大小，确认之前应该发送多少
+	// 如果 Discard 或者 ReadFull 失败，说明文件大小有变动（重置）
+	// 则无须发送重置前的内容
+
 	load := 100000
 	skip := 0
-
 	if load > size {
 		load = size
 	} else {
@@ -53,13 +63,12 @@ func (f *file) prev() (b []byte, ok bool) {
 
 	b = make([]byte, load)
 
-	n, err := reader.Read(b)
-	if n != load {
+	n, err := io.ReadFull(reader, b)
+	if err != nil || n != load {
 		return
 	}
 
 	ok = true
-
 	return
 }
 
@@ -89,6 +98,7 @@ func (f *file) scan() (b []byte, reset bool, ok bool) {
 	}
 
 	n, err := f.reader.Read(f.buf)
+
 	if err != nil {
 		if err != io.EOF {
 			f.reader = nil
@@ -106,6 +116,8 @@ func (f *file) scan() (b []byte, reset bool, ok bool) {
 }
 
 func (f *file) start() {
+
+	f.ch = make(chan bool, 1)
 
 	go func() {
 
@@ -135,26 +147,37 @@ func (f *file) deamon() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	f.ch = make(chan bool)
+	defer func() {
+		watcher.Close()
+		close(f.ch)
+	}()
 
 	for {
 		err := watcher.Add(f.filename)
 		if err == nil {
 			break
 		}
+		if f.stop {
+			return
+		}
 		time.Sleep(5 * time.Second)
 	}
 
-	select {
-	case f.ch <- true:
-	default:
-	}
+	tick := time.NewTicker(5 * time.Second)
 
 	for {
-		event := <-watcher.Events
-		if event.Op&fsnotify.Write == fsnotify.Write {
-			f.ch <- true
+		select {
+		case <-tick.C:
+			if f.stop {
+				return
+			}
+		case event := <-watcher.Events:
+			if event.Op&fsnotify.Write == fsnotify.Write {
+				select {
+				case f.ch <- true:
+				default:
+				}
+			}
 		}
 	}
 }
