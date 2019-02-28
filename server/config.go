@@ -8,4 +8,6 @@ var (
 	gameFPS = 60
 
 	readBuffSize = 65536
+
+	dirBase = `/tmp`
 )

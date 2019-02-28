@@ -15,7 +15,8 @@ func server() {
 	addr := `127.0.0.1:` + strconv.Itoa(*port)
 
 	mux := http.NewServeMux()
-	mux.HandleFunc(`/ws/listen`, doListen)
+	mux.HandleFunc(`/file`, doFile)
+	mux.HandleFunc(`/listen`, doListen)
 	fmt.Printf("port = %s\n", addr)
 	err := http.ListenAndServe(addr, mux)
 	if err != nil {

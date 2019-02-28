@@ -1,5 +1,6 @@
 import { AfterViewChecked, Component, OnInit, ElementRef, Renderer2, ViewChild } from '@angular/core';
 import { WSService } from '../ws.service';
+import { Api } from '../../api';
 import { pb } from '../../pb/pb';
 
 @Component({
@@ -12,6 +13,8 @@ export class ViewComponent implements OnInit, AfterViewChecked {
 	@ViewChild('scroll') private sc: ElementRef;
 
 	msgPool: Array<string> = [];
+
+	file: Array<string> = [];
 
 	charNum = 0;
 
@@ -28,9 +31,25 @@ export class ViewComponent implements OnInit, AfterViewChecked {
 		console.log('fetch', x.status, x.statusText);
 	}
 
+	async list() {
+
+		const ab = await Api.get('file');
+
+		const r = pb.FileReturn.decode(ab);
+
+		this.file.length = 0;
+
+		r.file.forEach((s) => {
+			this.file.push(s);
+		});
+
+		console.log(this.file);
+	}
+
 	constructor(private ws: WSService, private renderer: Renderer2) {
 		ws.cb = this;
 		this.fetch();
+		this.list();
 	}
 
 	recv(ws: WSService, msg: any, t: string, id: number) {

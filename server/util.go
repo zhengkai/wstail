@@ -3,6 +3,9 @@ package main
 import (
 	"bufio"
 	"os"
+	"time"
+
+	"pb"
 )
 
 func createReader(filename string) (r *bufio.Reader, err error) {
@@ -11,5 +14,16 @@ func createReader(filename string) (r *bufio.Reader, err error) {
 		return
 	}
 	r = bufio.NewReader(f)
+	return
+}
+
+func makeOpBaseReturn() (r *pb.OpBaseReturn) {
+
+	ts := time.Now().UnixNano() / 1000000
+
+	r = &pb.OpBaseReturn{
+		ServerTs: uint64(ts),
+	}
+
 	return
 }

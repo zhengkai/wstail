@@ -37,7 +37,7 @@ export class WSService {
 			this.conn.ws.close();
 		}
 
-		let ws = new WebSocket('ws://127.0.0.1:21002/ws/listen');
+		let ws = new WebSocket('ws://127.0.0.1:21002/listen');
 		const id = this.connectID;
 		const conn = {
 			id,
