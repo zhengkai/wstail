@@ -15,27 +15,38 @@ export class WSService {
 
 	connectID = 0;
 
-	count = 0;
+	connectCount = 0;
 
 	conn: IWsConn = null;
+
+	fileName = '';
 
 	ts: number;
 
 	cb: any;
 
+	stop: true;
+
 	constructor() {
-		this.connect();
+	}
+
+	close() {
+		this.stop = true;
+		this._disconnect();
+		this.conn = null;
+	}
+
+	_disconnect() {
+		this.connectID++;
+		if (this.conn !== null) {
+			this.conn.ws.close();
+		}
 	}
 
 	connect() {
 
-		this.connectID++;
 		this.ts = Date.now();
-
-		if (this.conn !== null) {
-			console.log('conn not null', this.conn);
-			this.conn.ws.close();
-		}
+		this._disconnect();
 
 		let ws = new WebSocket('ws://127.0.0.1:21002/listen');
 		const id = this.connectID;
@@ -75,16 +86,26 @@ export class WSService {
 	}
 
 	async onclose(e, id) {
-		console.log('onclose', e.code, e.reason, Date.now() - this.ts, e);
+
+		if (this.stop) {
+			return;
+		}
+
+		this.connectCount++;
+		if (this.connectCount > 5) {
+			this.connectCount = 5;
+		}
+
+		setTimeout(() => {
+			this.connect();
+		}, this.connectCount * 1000);
 	}
 
 	async onerror(e, id) {
-		console.log('onerror', e);
+		console.warn('ws onerror', e);
 	}
 
 	async onmessage(e, id) {
-		// console.log('onmessage', e);
-		//
 
 		const ab = await (new Response(e.data)).arrayBuffer();
 
@@ -113,10 +134,11 @@ export class WSService {
 	}
 
 	async onopen(e, id) {
-		console.log('onopen', e);
+
+		this.connectCount = 0;
 
 		const login = {
-			name: 'rpg',
+			fileName: this.fileName,
 			connectType: pb.Login.ConnectType.NEW,
 		} as pb.Login;
 

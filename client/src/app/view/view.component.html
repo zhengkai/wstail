@@ -1,5 +1,7 @@
 <div class="file">
-	<p *ngFor="let s of file">{{ s }}</p>
+	<ul>
+		<li *ngFor="let s of file" (click)="select(s)">{{ s }}</li>
+	</ul>
 </div>
 <div #scroll class="main">
 	<div class="in-box">

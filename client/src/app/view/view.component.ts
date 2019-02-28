@@ -15,8 +15,17 @@ export class ViewComponent implements OnInit, AfterViewChecked {
 	msgPool: Array<string> = [];
 
 	file: Array<string> = [];
+	fileSelect = '';
 
 	charNum = 0;
+
+	select(fileName: string) {
+		this.ws.cb = this;
+		this.fileSelect = fileName;
+		this.ws.fileName = fileName;
+		this.ws.connect();
+		this.msgPool.length = 0;
+	}
 
 	async fetch() {
 
@@ -47,7 +56,6 @@ export class ViewComponent implements OnInit, AfterViewChecked {
 	}
 
 	constructor(private ws: WSService, private renderer: Renderer2) {
-		ws.cb = this;
 		this.fetch();
 		this.list();
 	}

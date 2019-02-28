@@ -27,7 +27,7 @@ type world struct {
 
 func (w *world) init(filename string) {
 
-	fmt.Println(`world init`)
+	fmt.Println(`world init`, filename)
 
 	w.file = &file{
 		filename: filename,
@@ -126,7 +126,12 @@ func (w *world) Input(p rome.IPlayerConn, msg interface{}) {
 }
 
 func (w *world) stop() {
+
+	fmt.Println(`world close`, w.file.filename, time.Now().Sub(w.timeCreate))
+
 	w.file.stop = true
+
+	w.Room.Stop()
 }
 
 func (w *world) playerCount(status bool) {

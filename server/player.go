@@ -3,6 +3,9 @@ package main
 import (
 	"sync/atomic"
 
+	"pb"
+
+	"github.com/gogo/protobuf/proto"
 	"github.com/zhengkai/rome"
 )
 
@@ -17,8 +20,21 @@ type player struct {
 }
 
 func (p *player) Login(b []byte) (ok bool) {
+
+	login := &pb.Login{}
+
+	err := proto.Unmarshal(b, login)
+	if err != nil {
+		return
+	}
+
+	if !checkFileName(login.FileName) {
+		return
+	}
+
 	p.ID = atomic.AddUint64(&autoID, 1)
-	p.file = `/tmp/fortune.txt`
+	p.file = dirBase + `/` + login.FileName
+
 	return true
 }
 

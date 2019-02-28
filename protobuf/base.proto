@@ -20,7 +20,7 @@ message FileReturn {
 }
 
 message Login {
-	string name = 1;
+	string fileName = 1;
 	enum ConnectType {
 		NEW = 0;
 		RECONNECT = 1;

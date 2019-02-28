@@ -74,7 +74,7 @@ func worldCheckIdle(t time.Time) {
 			continue
 		}
 
-		v.stop()
 		delete(worldPool, k)
+		v.stop()
 	}
 }
