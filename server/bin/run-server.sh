@@ -25,6 +25,8 @@ echo
 
 chmod +x "$BIN"
 
+exit
+
 PID_FILE="${BIN}.pid"
 LOG_FILE="${BIN}.log"
 

@@ -1,6 +1,7 @@
 export class Api {
 
-	static url = 'http://127.0.0.1:21002/';
+	// static url = 'http://127.0.0.1:21002/';
+	static url = 'http://dinosaur-wechat-test.campfiregames.cn/wstail/';
 
 	static async get(uri: string) {
 

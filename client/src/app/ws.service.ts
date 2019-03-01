@@ -13,6 +13,8 @@ const lengthPrefixType = 'type.googleapis.com/pb.'.length;
 })
 export class WSService {
 
+	baseUrl = 'ws://dinosaur-wechat-test.campfiregames.cn/wstail/';
+
 	connectID = 0;
 
 	connectCount = 0;
@@ -48,7 +50,7 @@ export class WSService {
 		this.ts = Date.now();
 		this._disconnect();
 
-		let ws = new WebSocket('ws://127.0.0.1:21002/listen');
+		let ws = new WebSocket(this.baseUrl + 'listen');
 		const id = this.connectID;
 		const conn = {
 			id,

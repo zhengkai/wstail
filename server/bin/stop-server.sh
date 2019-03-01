@@ -14,7 +14,7 @@ if [ -f "$PID_FILE" ]; then
 
 	echo 'stop server' >> "$LOG_FILE" 2>&1 &
 
-	./safe-kill.sh "$PID" "$EXE"
+	./safe-kill.sh "$PID" "$EXE" || exit
 	echo
 	while [ -e "/proc/$PID/exe" ];
 	do

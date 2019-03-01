@@ -4,15 +4,13 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
-	"strconv"
 )
 
 func server() {
 
-	port := flag.Int("port", 21002, "http port")
 	flag.Parse()
 
-	addr := `127.0.0.1:` + strconv.Itoa(*port)
+	addr := fmt.Sprintf(`%s:%d`, listenHost, *listenPort)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc(`/file`, doFile)
