@@ -13,7 +13,7 @@ const lengthPrefixType = 'type.googleapis.com/pb.'.length;
 })
 export class WSService {
 
-	baseUrl = 'ws://dinosaur-wechat-test.campfiregames.cn/wstail/';
+	baseUrl = 'wss://dinosaur-wechat-test.campfiregames.cn/wstail/';
 
 	connectID = 0;
 

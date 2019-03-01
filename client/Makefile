@@ -4,7 +4,7 @@ default:
 	sudo ng serve --host 127.0.0.1 --port 22003
 
 test:
-	ng build --prod --base-href 'https://rtm.9farm.com/'
+	ng build --prod --base-href 'https://wstail.9farm.com/'
 
 init:
 	npm install
